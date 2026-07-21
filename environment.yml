@@ -13,4 +13,5 @@ dependencies:
   - rasterio=1.4
   - scikit-learn=1.7
   - scipy=1.16
+  - tqdm=4.67
   - xarray=2025.10

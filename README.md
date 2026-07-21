@@ -20,7 +20,28 @@ from Git.
 
 ## Environment
 
-Create and activate the Conda environment:
+Python 3.12 is required; the tested version is Python 3.12.12. Install Python
+before using `pip`, because `requirements.txt` contains libraries and cannot
+install the Python interpreter. To create a virtual environment without Conda
+on Windows PowerShell:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install --upgrade pip
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+```
+
+If `python` is not available in `PATH`, use the full path to an existing Python
+3.12 executable for the first command.
+
+Activation is optional because the environment's Python executable can be
+called directly. Run the tests with:
+
+```powershell
+.\.venv\Scripts\python.exe -m unittest discover -s tests -v
+```
+
+Alternatively, create and activate the Conda environment:
 
 ```powershell
 conda env create -f environment.yml
@@ -35,16 +56,16 @@ before the first run.
 From the repository root:
 
 ```powershell
-python scripts/IME.py
+.\.venv\Scripts\python.exe scripts\IME.py
 ```
 
 Useful options:
 
 ```powershell
-python scripts/IME.py --help
-python scripts/IME.py --no-plots
-python scripts/IME.py --show-plots
-python scripts/IME.py --data-dir path\to\data --output-dir path\to\outputs
+.\.venv\Scripts\python.exe scripts\IME.py --help
+.\.venv\Scripts\python.exe scripts\IME.py --no-plots
+.\.venv\Scripts\python.exe scripts\IME.py --show-plots
+.\.venv\Scripts\python.exe scripts\IME.py --data-dir path\to\data --output-dir path\to\outputs
 ```
 
 The script recursively discovers PRISMA and EnMAP GeoTIFFs under `data`. The
