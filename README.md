@@ -1,29 +1,104 @@
 # PRISMA-EnMAP-GHGSat comparison
 
-This repository calculates integrated mass enhancement (IME), characteristic
-plume length, effective wind speed, and methane emission rate from PRISMA and
-EnMAP plume GeoTIFFs. Public GHGSat metrics are read from a CSV because the
-original GHGSat imagery cannot be redistributed.
+This project calculates and compares methane plume metrics from PRISMA and
+EnMAP GeoTIFFs and public GHGSat data. ERA5-Land provides the wind data.
 
-## Project structure
+Follow the steps below from top to bottom. Commands are provided for Windows
+PowerShell and macOS Terminal.
 
-```text
-scripts/IME.py                 Command-line entry point
-utils/                         Scientific and processing modules
-data/YYYYMMDD/                 Public PRISMA and EnMAP plume GeoTIFFs
-data/data_ghgsat_public.csv    Read-only public GHGSat metrics
-outputs/                       Generated tables and figures
+## 1. Get repository access
+
+1. Create a [GitHub account](https://github.com/signup), if needed.
+2. Ask the repository owner for a collaborator invitation.
+3. Open the invitation email and accept it.
+4. Confirm that you can open the
+   [repository page](https://github.com/DanieleSettembre/PRISMA-EnMAP-GHGSat).
+
+The repository is private. Cloning will fail until the invitation is accepted.
+
+## 2. Install the required software
+
+Python 3.12, Git, Git LFS, and GitHub CLI are required.
+
+### Windows PowerShell
+
+Open PowerShell and run:
+
+```powershell
+winget install --exact --id Python.Python.3.12
+winget install --exact --id Git.Git
+winget install --exact --id GitHub.GitLFS
+winget install --exact --id GitHub.cli
 ```
 
-ERA5-Land cache files are created under `data/YYYYMMDD/ERA5/` and are excluded
-from Git.
+Close and reopen PowerShell, then verify the installation:
 
-## Environment
+```powershell
+python --version
+git --version
+git lfs version
+gh --version
+git lfs install
+```
 
-Python 3.12 is required; the tested version is Python 3.12.12. Install Python
-before using `pip`, because `requirements.txt` contains libraries and cannot
-install the Python interpreter. To create a virtual environment without Conda
-on Windows PowerShell:
+`python --version` must report Python 3.12.x.
+
+### macOS Terminal
+
+Install the Xcode command-line tools:
+
+```bash
+xcode-select --install
+```
+
+Install [Homebrew](https://brew.sh/) if `brew --version` is not available:
+
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+
+Follow the PATH instructions printed by the Homebrew installer. Then run:
+
+```bash
+brew install python@3.12 git git-lfs gh
+python3.12 --version
+git --version
+git lfs version
+gh --version
+git lfs install
+```
+
+`python3.12 --version` must report Python 3.12.x.
+
+## 3. Clone the repository
+
+Authenticate with the GitHub account that accepted the invitation:
+
+```bash
+gh auth login --web --git-protocol https
+gh auth status
+```
+
+Choose a parent directory, then run:
+
+```bash
+gh repo clone DanieleSettembre/PRISMA-EnMAP-GHGSat
+cd PRISMA-EnMAP-GHGSat
+git lfs pull
+git lfs ls-files
+```
+
+Complete the browser login when requested. `git lfs ls-files` must list 15
+GeoTIFFs. If the TIFFs contain only small text pointers, run `git lfs pull`
+again.
+
+## 4. Create the Python environment
+
+The environment is stored inside `.venv` and does not require Conda.
+
+### Windows PowerShell
+
+Run from the repository root:
 
 ```powershell
 python -m venv .venv
@@ -31,143 +106,277 @@ python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
-If `python` is not available in `PATH`, use the full path to an existing Python
-3.12 executable for the first command.
-
-Activation is optional because the environment's Python executable can be
-called directly. Run the tests with:
+Verify the environment:
 
 ```powershell
-.\.venv\Scripts\python.exe -m unittest discover -s tests -v
+.\.venv\Scripts\python.exe --version
+.\.venv\Scripts\python.exe -m pip check
 ```
 
-Alternatively, create and activate the Conda environment:
+### macOS Terminal
 
-```powershell
-conda env create -f environment.yml
-conda activate prisma-enmap-ghgsat
+Run from the repository root:
+
+```bash
+python3.12 -m venv .venv
+.venv/bin/python -m pip install --upgrade pip
+.venv/bin/python -m pip install -r requirements.txt
 ```
 
-## Climate Data Store credentials
+Verify the environment:
 
-ERA5-Land downloads use the Climate Data Store API. Register or log in at the
-[CDS API setup page](https://cds.climate.copernicus.eu/how-to-api), copy the
-personal access token, and create this file on Windows:
-
-```text
-%USERPROFILE%\.cdsapirc
+```bash
+.venv/bin/python --version
+.venv/bin/python -m pip check
 ```
 
-Its content must use the current two-field format:
+`pip check` should print `No broken requirements found`.
+
+## 5. Configure Climate Data Store access
+
+ERA5-Land downloads require personal CDS credentials. Credentials are stored
+outside the repository and must never be shared or committed.
+
+1. Register or log in at the
+   [Climate Data Store](https://cds.climate.copernicus.eu/).
+2. Open the [CDS API page](https://cds.climate.copernicus.eu/how-to-api).
+3. Copy the personal access token shown on that page.
+4. Create the credential file described below.
+5. Open the [ERA5-Land download page](https://cds.climate.copernicus.eu/datasets/reanalysis-era5-land?tab=download)
+   and accept the dataset terms.
+
+The credential file must contain exactly these fields:
 
 ```yaml
 url: https://cds.climate.copernicus.eu/api
 key: <PERSONAL-ACCESS-TOKEN>
 ```
 
-Do not place the real token inside this repository. The `.cdsapirc` name is
-included in `.gitignore` as an additional safeguard. Before downloading, open
-the [ERA5-Land download page](https://cds.climate.copernicus.eu/datasets/reanalysis-era5-land?tab=download)
-while logged in and accept its terms of use.
+Replace `<PERSONAL-ACCESS-TOKEN>` with the real token.
 
-The program checks `data/YYYYMMDD/ERA5/` before each request. An existing,
-non-empty ZIP is reused; otherwise `cdsapi` downloads the required ERA5-Land
-hour. These cache directories are excluded from Git.
+### Windows PowerShell
 
-### Test one real ERA5-Land download
-
-The following PowerShell commands create a unique temporary data directory, so
-no repository cache can be reused. Run them from the repository root after
-installing the requirements:
+Create the file in the Windows user profile:
 
 ```powershell
-$pythonExe = ".\.venv\Scripts\python.exe"
-$testRoot = Join-Path $env:TEMP ("prisma-era5-test-" + [guid]::NewGuid())
-$testData = Join-Path $testRoot "data"
-$testPlume = Join-Path $testData "20240831\Plume1"
-New-Item -ItemType Directory -Path $testPlume -Force | Out-Null
-
-Copy-Item `
-  -LiteralPath "data\20240831\Plume1\PRS_L1_STD_OFFL_20240831072143_20240831072147_0001_HCO_FULL_ch4_400_2488_georef_Plume1.tif" `
-  -Destination $testPlume
-
-& $pythonExe scripts\IME.py `
-  --data-dir $testData `
-  --ghgsat-csv "data\data_ghgsat_public.csv" `
-  --output-dir (Join-Path $testRoot "outputs") `
-  --no-plots
+notepad "$env:USERPROFILE\.cdsapirc"
 ```
 
-A successful test prints `ERA5 wind speed` and creates a new
-`$testData\20240831\ERA5` directory. It must not print `Skip download` for the
-first request or `ERROR on file`.
+Paste the two YAML lines, replace the token, save, and close Notepad. The final
+path is normally `C:\Users\USERNAME\.cdsapirc`.
 
-## Run
+### macOS Terminal
 
-From the repository root:
+Create the file in the home directory:
+
+```bash
+nano ~/.cdsapirc
+```
+
+Paste the two YAML lines, replace the token, save with `Ctrl+O`, press Enter,
+and exit with `Ctrl+X`. Protect the file:
+
+```bash
+chmod 600 ~/.cdsapirc
+```
+
+Do not create `.cdsapirc` inside the repository.
+
+## 6. Run the automated tests
+
+These tests validate the formulas, metadata parsing, ERA5 hourly matching, and
+wind-direction convention. They do not access the internet.
+
+### Windows PowerShell
+
+```powershell
+.\.venv\Scripts\python.exe -m unittest discover -s tests -v
+```
+
+### macOS Terminal
+
+```bash
+.venv/bin/python -m unittest discover -s tests -v
+```
+
+The expected final result is:
+
+```text
+Ran 5 tests
+OK
+```
+
+## 7. Run the complete analysis
+
+The first complete run tests the CDS credentials and downloads missing
+ERA5-Land data.
+
+### Windows PowerShell
+
+```powershell
+.\.venv\Scripts\python.exe scripts\IME.py --no-plots
+```
+
+### macOS Terminal
+
+```bash
+.venv/bin/python scripts/IME.py --no-plots
+```
+
+During a successful run:
+
+1. The program finds 15 public PRISMA/EnMAP GeoTIFFs.
+2. Missing ERA5-Land ZIP files are downloaded.
+3. ERA5 files are cached under `data/YYYYMMDD/ERA5/`.
+4. Public GHGSat metrics are read from `data/data_ghgsat_public.csv`.
+5. Results are written under `outputs/`.
+
+Expected summary:
+
+```text
+Found 15 public GeoTIFF files
+Paired IME events used: 14
+Paired Q events used: 14
+```
+
+There must be no `ERROR on file` messages. Some `Skip download` messages can
+appear during the first run when multiple plume files use the same ERA5 cache.
+Later runs reuse all available cache files.
+
+## 8. Generate figures
+
+Create figures without opening interactive windows:
+
+Windows PowerShell:
 
 ```powershell
 .\.venv\Scripts\python.exe scripts\IME.py
 ```
 
-Useful options:
+macOS Terminal:
+
+```bash
+.venv/bin/python scripts/IME.py
+```
+
+Create figures and display them during the run:
+
+Windows PowerShell:
 
 ```powershell
-.\.venv\Scripts\python.exe scripts\IME.py --help
-.\.venv\Scripts\python.exe scripts\IME.py --no-plots
 .\.venv\Scripts\python.exe scripts\IME.py --show-plots
-.\.venv\Scripts\python.exe scripts\IME.py --data-dir path\to\data --output-dir path\to\outputs
 ```
 
-The script recursively discovers PRISMA and EnMAP GeoTIFFs under `data`. The
-public GHGSat CSV is an input file and is never overwritten.
+macOS Terminal:
 
-## Method
+```bash
+.venv/bin/python scripts/IME.py --show-plots
+```
 
-IME is calculated from the masked column enhancement and pixel area. The
-characteristic plume length is:
+Use `--help` to list all command-line options.
+
+## 9. Check the outputs
+
+The compact CSV is:
 
 ```text
-L = sqrt(A_M)
+outputs/Flux_comparison_GHGSat_PRISMA_EnMAP_multisensor.csv
 ```
 
-For PRISMA and EnMAP:
-
-```text
-Ueff = 0.34 * U10 + 0.44
-```
-
-References:
-
-1. Guanter et al., 2021: https://www.sciencedirect.com/science/article/pii/S0034425721003916
-2. Rogers et al., 2024: https://ieeexplore.ieee.org/abstract/document/10387469
-
-For GHGSat:
-
-```text
-Ueff = 0.9 * ln(U10) + 0.6
-```
-
-Reference: Varon et al., 2018: https://amt.copernicus.org/articles/11/5673/2018/
-
-The emission rate is:
-
-```text
-Q = IME * Ueff / L
-```
-
-Acquisition timestamps in the filenames are interpreted as UTC
-(`LOCAL_UTC_OFFSET_HOURS = 0`). ERA5-Land is selected at the nearest hourly
-timestamp. Wind direction is the meteorological direction the wind comes from,
-measured clockwise from North.
-
-## Outputs
-
-The compact multi-sensor CSV contains only:
+It contains:
 
 ```text
 file, wind_speed_m_s, effective_wind_speed_m_s, IME_kg, L_m, Q_kg_h
 ```
 
-Additional Excel tables and PRISMA-GHGSat comparison figures are written to
-`outputs/`.
+The `outputs/` directory also contains the complete Excel tables and the IME
+and flux comparison figures. Outputs and ERA5 cache files are excluded from
+Git.
+
+## 10. Update an existing clone
+
+From the repository root:
+
+```bash
+git pull --ff-only
+git lfs pull
+```
+
+Update the Python libraries after `requirements.txt` changes:
+
+Windows PowerShell:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+```
+
+macOS Terminal:
+
+```bash
+.venv/bin/python -m pip install -r requirements.txt
+```
+
+## 11. Troubleshooting
+
+### `Repository not found` or HTTP 404
+
+Accept the GitHub collaborator invitation and sign in with the invited account.
+
+### GeoTIFFs are small text files
+
+Git LFS is missing or has not downloaded the data:
+
+```bash
+git lfs install
+git lfs pull
+```
+
+### `python` is not recognized on Windows
+
+Close and reopen PowerShell after installing Python. Confirm that Python 3.12
+was added to PATH. Conda is not required.
+
+### CDS authentication error or HTTP 401
+
+Check that `.cdsapirc` is in the user home directory, uses the current URL, and
+contains the personal token without quotes.
+
+### CDS licence error or HTTP 403
+
+Log in to CDS and accept the ERA5-Land dataset terms.
+
+### `Skip download` appears
+
+This is normal when a non-empty ERA5 ZIP already exists in
+`data/YYYYMMDD/ERA5/`.
+
+### A `1 x 1` ERA5 subset cannot produce a TIFF
+
+This is expected. The point wind value is still used for the calculations.
+
+## 12. Data and method
+
+```text
+data/YYYYMMDD/                 PRISMA and EnMAP plume GeoTIFFs
+data/data_ghgsat_public.csv    Public GHGSat metrics (read-only)
+outputs/                       Generated tables and figures
+```
+
+Private GHGSat imagery is not distributed. The public GHGSat CSV is read-only
+and is never overwritten.
+
+```text
+L = sqrt(A_M)
+Q = IME * Ueff / L
+
+PRISMA and EnMAP: Ueff = 0.34 * U10 + 0.44
+GHGSat:           Ueff = 0.9 * ln(U10) + 0.6
+```
+
+References: [Guanter et al., 2021](https://www.sciencedirect.com/science/article/pii/S0034425721003916),
+[Rogers et al., 2024](https://ieeexplore.ieee.org/abstract/document/10387469), and
+[Varon et al., 2018](https://amt.copernicus.org/articles/11/5673/2018/).
+
+Filename timestamps are interpreted as UTC. ERA5-Land is selected at the
+nearest hour. Wind direction is measured clockwise from North and indicates
+where the wind comes from.
