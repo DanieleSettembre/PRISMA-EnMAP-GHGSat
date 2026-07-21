@@ -48,8 +48,59 @@ conda env create -f environment.yml
 conda activate prisma-enmap-ghgsat
 ```
 
-ERA5-Land downloads use the Climate Data Store API. Configure CDS credentials
-before the first run.
+## Climate Data Store credentials
+
+ERA5-Land downloads use the Climate Data Store API. Register or log in at the
+[CDS API setup page](https://cds.climate.copernicus.eu/how-to-api), copy the
+personal access token, and create this file on Windows:
+
+```text
+%USERPROFILE%\.cdsapirc
+```
+
+Its content must use the current two-field format:
+
+```yaml
+url: https://cds.climate.copernicus.eu/api
+key: <PERSONAL-ACCESS-TOKEN>
+```
+
+Do not place the real token inside this repository. The `.cdsapirc` name is
+included in `.gitignore` as an additional safeguard. Before downloading, open
+the [ERA5-Land download page](https://cds.climate.copernicus.eu/datasets/reanalysis-era5-land?tab=download)
+while logged in and accept its terms of use.
+
+The program checks `data/YYYYMMDD/ERA5/` before each request. An existing,
+non-empty ZIP is reused; otherwise `cdsapi` downloads the required ERA5-Land
+hour. These cache directories are excluded from Git.
+
+### Test one real ERA5-Land download
+
+The following PowerShell commands create a unique temporary data directory, so
+no repository cache can be reused. Run them from the repository root after
+installing the requirements:
+
+```powershell
+$pythonExe = ".\.venv\Scripts\python.exe"
+$testRoot = Join-Path $env:TEMP ("prisma-era5-test-" + [guid]::NewGuid())
+$testData = Join-Path $testRoot "data"
+$testPlume = Join-Path $testData "20240831\Plume1"
+New-Item -ItemType Directory -Path $testPlume -Force | Out-Null
+
+Copy-Item `
+  -LiteralPath "data\20240831\Plume1\PRS_L1_STD_OFFL_20240831072143_20240831072147_0001_HCO_FULL_ch4_400_2488_georef_Plume1.tif" `
+  -Destination $testPlume
+
+& $pythonExe scripts\IME.py `
+  --data-dir $testData `
+  --ghgsat-csv "data\data_ghgsat_public.csv" `
+  --output-dir (Join-Path $testRoot "outputs") `
+  --no-plots
+```
+
+A successful test prints `ERA5 wind speed` and creates a new
+`$testData\20240831\ERA5` directory. It must not print `Skip download` for the
+first request or `ERROR on file`.
 
 ## Run
 
