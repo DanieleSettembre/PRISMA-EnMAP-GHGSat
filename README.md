@@ -6,17 +6,7 @@ EnMAP GeoTIFFs and public GHGSat data. ERA5-Land provides the wind data.
 Follow the steps below from top to bottom. Commands are provided for Windows
 PowerShell and macOS Terminal.
 
-## 1. Get repository access
-
-1. Create a [GitHub account](https://github.com/signup), if needed.
-2. Ask the repository owner for a collaborator invitation.
-3. Open the invitation email and accept it.
-4. Confirm that you can open the
-   [repository page](https://github.com/DanieleSettembre/PRISMA-EnMAP-GHGSat).
-
-The repository is private. Cloning will fail until the invitation is accepted.
-
-## 2. Install the required software
+## 1. Install the required software
 
 Python 3.12, Git, Git LFS, and GitHub CLI are required.
 
@@ -70,9 +60,9 @@ git lfs install
 
 `python3.12 --version` must report Python 3.12.x.
 
-## 3. Clone the repository
+## 2. Clone the repository
 
-Authenticate with the GitHub account that accepted the invitation:
+Authenticate with GitHub:
 
 ```bash
 gh auth login --web --git-protocol https
@@ -92,7 +82,7 @@ Complete the browser login when requested. `git lfs ls-files` must list the
 GeoTIFFs. If the TIFFs contain only small text pointers, run `git lfs pull`
 again.
 
-## 4. Create the Python environment
+## 3. Create the Python environment
 
 The environment is stored inside `.venv` and does not require Conda.
 
@@ -132,7 +122,7 @@ Verify the environment:
 
 `pip check` should print `No broken requirements found`.
 
-## 5. Configure Climate Data Store access
+## 4. Configure Climate Data Store access
 
 ERA5-Land downloads require personal CDS credentials. Credentials are stored
 outside the repository and must never be shared or committed.
@@ -182,7 +172,7 @@ chmod 600 ~/.cdsapirc
 
 Do not create `.cdsapirc` inside the repository.
 
-## 6. Run the complete analysis
+## 5. Run the complete analysis
 
 The first complete run tests the CDS credentials and downloads missing
 ERA5-Land data.
@@ -209,7 +199,7 @@ The analysis:
 
 After the command finishes, check the generated files described in Step 9.
 
-## 7. Generate figures
+## 6. Generate figures
 
 Create figures without opening interactive windows:
 
@@ -241,7 +231,7 @@ macOS Terminal:
 
 Use `--help` to list all command-line options.
 
-## 8. Compare plume centerlines
+## 7. Compare plume centerlines
 
 All plume folders are processed automatically using only the PRISMA raster and
 its centerline. Profile direction and sampling density are adjusted
@@ -262,7 +252,7 @@ macOS Terminal:
 Figures are saved under `outputs/centerlines/`. Use `--help` to list the
 optional controls for a single comparison.
 
-## 9. Coregister PRISMA images
+## 8. Coregister PRISMA images
 
 This script coregisters the three-band PRISMA rasters to the EnMAP reference
 using SSIM.
@@ -279,7 +269,7 @@ macOS Terminal:
 .venv/bin/python scripts/Coregistration_PRS.py
 ```
 
-## 10. Check the outputs
+## 9. Check the outputs
 
 The compact CSV is:
 
@@ -308,7 +298,7 @@ outputs/Flux_comparison_PRS-GHGSat.csv
 The `outputs/` directory also contains the comparison figures.
 Outputs and ERA5 cache files are excluded from Git.
 
-## 11. Troubleshooting
+## 10. Troubleshooting
 
 ### CDS authentication error or HTTP 401
 
@@ -319,7 +309,7 @@ contains the personal token without quotes.
 
 Log in to CDS and accept the ERA5-Land dataset terms.
 
-## 12. Data and method
+## 11. Data and method
 
 ```text
 data/YYYYMMDD/                 PRISMA and EnMAP plume GeoTIFFs
