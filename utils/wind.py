@@ -213,6 +213,51 @@ def local_to_utc(dt_local: datetime, utc_offset_hours: int) -> datetime:
     return dt_local.replace(tzinfo=local_timezone).astimezone(timezone.utc)
 
 
+def acquisition_interval_utc(file_path: str) -> tuple[datetime, datetime]:
+    start_local, stop_local = parse_acquisition_times(file_path)
+    return (
+        local_to_utc(start_local, LOCAL_UTC_OFFSET_HOURS),
+        local_to_utc(stop_local, LOCAL_UTC_OFFSET_HOURS),
+    )
+
+
+def nearest_acquisition_path(
+    target_path: str,
+    candidate_paths: list[str],
+) -> str:
+    """Match the target start time, preferring the earlier interval on ties."""
+    if not candidate_paths:
+        return target_path
+
+    target_start, _ = acquisition_interval_utc(target_path)
+    candidates = []
+    for candidate_path in candidate_paths:
+        try:
+            start_utc, stop_utc = acquisition_interval_utc(candidate_path)
+        except ValueError:
+            continue
+
+        if start_utc <= target_start <= stop_utc:
+            distance_seconds = 0.0
+        elif target_start < start_utc:
+            distance_seconds = (start_utc - target_start).total_seconds()
+        else:
+            distance_seconds = (target_start - stop_utc).total_seconds()
+
+        candidates.append(
+            (
+                distance_seconds,
+                start_utc,
+                stop_utc,
+                str(candidate_path),
+            )
+        )
+
+    if not candidates:
+        return target_path
+    return min(candidates)[3]
+
+
 def nearest_era5_hour_utc(time_utc: datetime) -> str:
     return nearest_era5_datetime_utc(time_utc).strftime("%H:00")
 
@@ -228,9 +273,7 @@ def nearest_era5_datetime_utc(time_utc: datetime) -> datetime:
 
 
 def acquisition_midpoint_utc(file_path: str) -> datetime:
-    start_local, stop_local = parse_acquisition_times(file_path)
-    start_utc = local_to_utc(start_local, LOCAL_UTC_OFFSET_HOURS)
-    stop_utc = local_to_utc(stop_local, LOCAL_UTC_OFFSET_HOURS)
+    start_utc, stop_utc = acquisition_interval_utc(file_path)
     return start_utc + (stop_utc - start_utc) / 2
 
 
@@ -412,9 +455,7 @@ def windspeed_from_time_and_area(
     output_dir = era5_output_dir_for_raster(area_raster_path)
     os.makedirs(output_dir, exist_ok=True)
 
-    start_local, stop_local = parse_acquisition_times(time_source_path)
-    start_utc = local_to_utc(start_local, LOCAL_UTC_OFFSET_HOURS)
-    stop_utc = local_to_utc(stop_local, LOCAL_UTC_OFFSET_HOURS)
+    start_utc, stop_utc = acquisition_interval_utc(time_source_path)
     midpoint_utc = start_utc + (stop_utc - start_utc) / 2
 
     request = build_cds_request(start_utc, area)

@@ -16,6 +16,7 @@ from utils.outputs import write_analysis_outputs
 from utils.plotting import create_comparison_plots
 from utils.wind import (
     acquisition_midpoint_utc,
+    nearest_acquisition_path,
     nearest_era5_datetime_utc,
     windspeed,
 )
@@ -48,18 +49,28 @@ def process_plume_tif(
     percentile_filter: float,
     plot_mask: bool,
     wind_by_event_hour: dict,
+    prisma_reference_paths: list[str],
 ) -> dict:
     sensor = sat_name_from_tif(tif_path)
-    plume_dir = plume_directory_from_tif(tif_path)
 
     try:
         midpoint_utc = acquisition_midpoint_utc(tif_path)
-        wind_key = (event_key(tif_path), nearest_era5_datetime_utc(midpoint_utc))
+        wind_reference_path = (
+            nearest_acquisition_path(tif_path, prisma_reference_paths)
+            if sensor == "PRS"
+            else tif_path
+        )
+        wind_midpoint_utc = acquisition_midpoint_utc(wind_reference_path)
+        wind_key = (
+            event_key(tif_path),
+            nearest_era5_datetime_utc(wind_midpoint_utc),
+        )
         datetime_str = midpoint_utc.strftime("%Y/%m/%d %H:%M:%S")
         if wind_key in wind_by_event_hour:
             wind_speed = wind_by_event_hour[wind_key]
         else:
-            wind_speed, datetime_str = windspeed(tif_path, plume_dir)
+            wind_reference_dir = plume_directory_from_tif(wind_reference_path)
+            wind_speed, _ = windspeed(wind_reference_path, wind_reference_dir)
             wind_by_event_hour[wind_key] = wind_speed
         metrics = emission_rate_from_plume_tif(
             tif_path=tif_path,
@@ -110,6 +121,9 @@ def run_analysis(
 
     os.makedirs(output_dir, exist_ok=True)
     wind_by_event_hour = {}
+    prisma_reference_paths = [
+        path for path in tif_paths if sat_name_from_tif(path) == "PRS"
+    ]
     results = [
         process_plume_tif(
             tif_path,
@@ -117,6 +131,7 @@ def run_analysis(
             percentile_filter,
             plot_mask,
             wind_by_event_hour,
+            prisma_reference_paths,
         )
         for tif_path in tif_paths
     ]
