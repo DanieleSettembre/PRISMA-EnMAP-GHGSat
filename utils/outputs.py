@@ -39,7 +39,6 @@ def write_multisensor_flux_csv(
     ].reset_index(drop=True)
     output["file"] = output["file"].map(display_file_name)
     output.to_csv(output_csv, index=False, encoding="utf-8-sig")
-    print(f"\nSaved compact multi-sensor CSV: {output_csv}")
 
 
 def write_analysis_outputs(
@@ -64,4 +63,3 @@ def write_analysis_outputs(
         "Flux_comparison_by_plume_sensor_IME_sqrtA_percentile_mod_multisensor.xlsx",
     )
     comparison.to_excel(comparison_path, index=False)
-    print(f"\nSaved: {comparison_path}")

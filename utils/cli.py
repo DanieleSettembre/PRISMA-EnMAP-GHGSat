@@ -16,7 +16,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--data-dir",
         type=Path,
         default=PROJECT_ROOT / "data",
-        help="Directory containing date-organized PRISMA and EnMAP GeoTIFFs.",
+        help="Directory containing PRISMA and EnMAP (20240911) GeoTIFFs.",
     )
     parser.add_argument(
         "--ghgsat-csv",
@@ -41,7 +41,6 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> None:
     args = build_parser().parse_args()
     tif_paths = discover_public_tifs(args.data_dir)
-    print(f"Found {len(tif_paths)} public GeoTIFF files in {args.data_dir}")
     run_analysis(
         tif_paths=tif_paths,
         ghgsat_public_csv=str(args.ghgsat_csv.resolve()),

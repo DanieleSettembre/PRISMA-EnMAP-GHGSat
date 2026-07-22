@@ -63,7 +63,6 @@ def open_era5_dataset(nc_path: str) -> xr.Dataset:
 
 def download_era5_land_cached(request: dict, out_zip_path: str) -> str:
     if os.path.exists(out_zip_path) and os.path.getsize(out_zip_path) > 0:
-        print(f"Skip download: {out_zip_path}")
         return out_zip_path
 
     import cdsapi
@@ -366,10 +365,6 @@ def compute_speed_direction_tiff(
             speed = speed[::-1, :]
             direction = direction[::-1, :]
         if len(longitudes) < 2 or len(latitudes) < 2:
-            print(
-                "ERA5 subset is too small for a wind GeoTIFF "
-                f"({len(latitudes)} x {len(longitudes)}); using the point value."
-            )
             return False
 
         x_resolution = float(abs(longitudes[1] - longitudes[0]))
@@ -440,8 +435,6 @@ def windspeed_from_time_and_area(
         plume_lon,
         target_time_utc=midpoint_utc,
     )
-    print(f"ERA5 wind speed: {wind_point['speed']} m/s")
-
     try:
         compute_speed_direction_tiff(
             nc_path,
@@ -449,8 +442,8 @@ def windspeed_from_time_and_area(
             out_tif,
             target_time_utc=midpoint_utc,
         )
-    except Exception as exc:
-        print(f"Wind GeoTIFF unavailable ({exc}); using the ERA5 point value.")
+    except Exception:
+        pass
 
     return wind_point["speed"], midpoint_utc.strftime("%Y/%m/%d %H:%M:%S")
 

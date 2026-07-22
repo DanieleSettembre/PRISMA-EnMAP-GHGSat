@@ -137,6 +137,5 @@ def emission_rate_from_plume_tif(
         "Ueff_method": ueff_method,
         "Q_kg_s": q_kg_s,
         "Q_kg_h": q_kg_h,
-        "mask_threshold_ppm_m": effective_threshold_ppm_m,
         "n_plume_pixels": n_plume_pixels,
     }

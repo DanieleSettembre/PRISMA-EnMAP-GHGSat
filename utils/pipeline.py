@@ -50,7 +50,6 @@ def process_plume_tif(
     plot_mask: bool,
     wind_by_event_hour: dict,
 ) -> dict:
-    print(f"Processing: {tif_path}")
     sensor = sat_name_from_tif(tif_path)
     plume_dir = plume_directory_from_tif(tif_path)
 
@@ -60,10 +59,6 @@ def process_plume_tif(
         datetime_str = midpoint_utc.strftime("%Y/%m/%d %H:%M:%S")
         if wind_key in wind_by_event_hour:
             wind_speed = wind_by_event_hour[wind_key]
-            print(
-                "Reusing ERA5 wind for the same event and nearest hour: "
-                f"{wind_speed} m/s"
-            )
         else:
             wind_speed, datetime_str = windspeed(tif_path, plume_dir)
             wind_by_event_hour[wind_key] = wind_speed
@@ -77,7 +72,7 @@ def process_plume_tif(
             px_area_def=None,
             plot_mask=plot_mask,
         )
-        result = {
+        return {
             "event": event_key(tif_path),
             "sat": sensor,
             "sat_group": sat_group_from_sat_name(sensor),
@@ -94,21 +89,7 @@ def process_plume_tif(
             "Q (kg/s)": metrics["Q_kg_s"],
             "Q (kg/h)": metrics["Q_kg_h"],
         }
-        print(f"Event: {result['event']}")
-        print(f"Satellite: {sensor}")
-        print(f"U10 = {metrics['U10_mps']:.3f} m/s")
-        print(f"Ueff = {metrics['Ueff_mps']:.3f} m/s")
-        print(f"Ueff method: {metrics['Ueff_method']}")
-        print(f"Mask threshold = {metrics['mask_threshold_ppm_m']:.6f} ppm m")
-        print(f"A_M = {metrics['A_m2']:.2f} m2")
-        print(f"L = {metrics['L_m']:.2f} m")
-        print(f"IME = {metrics['IME_kg']:.6f} kg")
-        print(f"Q = {metrics['Q_kg_s']:.6f} kg/s")
-        print(f"Q = {metrics['Q_kg_h']:.3f} kg/h")
-        return result
     except Exception as exc:
-        print(f"ERROR on file: {tif_path}")
-        print(exc)
         return _error_result(tif_path, exc)
 
 
@@ -150,10 +131,6 @@ def run_analysis(
     result_table = pd.DataFrame(results)
     pair_results, wide_ime, wide_q = build_paired_tables(result_table)
     comparison = build_detailed_comparison_table(pair_results, wide_ime)
-
-    print(f"\nPaired IME events used: {len(wide_ime)}")
-    print(wide_ime)
-    print(f"\nPaired Q events used: {len(wide_q)}")
 
     write_analysis_outputs(result_table, comparison, output_dir)
     if create_plots:

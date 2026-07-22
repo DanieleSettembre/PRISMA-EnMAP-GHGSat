@@ -80,10 +80,6 @@ def fill_ghgsat_public_wind(
             )
         else:
             u10_mps = float(wind_speed_override)
-            print(
-                "Reusing ERA5 wind for the same event and nearest hour: "
-                f"{u10_mps} m/s"
-            )
     except Exception as exc:
         result["error"] = (
             f"{result.get('error', '')}; GHGSat wind unavailable: {exc}"
@@ -156,7 +152,6 @@ def append_ghgsat_public_results(
     raster_by_event = reference_raster_by_event(results)
     wind_by_event_hour = wind_by_event_hour if wind_by_event_hour is not None else {}
 
-    added_events = []
     for row in table.to_dict("records"):
         event = str(row.get("event", ""))
         if not event or event not in requested_events or event in existing_events:
@@ -176,7 +171,3 @@ def append_ghgsat_public_results(
             wind_by_event_hour.setdefault(wind_key, result["U10 (m/s)"])
         results.append(result)
         existing_events.add(event)
-        added_events.append(event)
-
-    if added_events:
-        print("\nLoaded public GHGSat metrics for: " + ", ".join(added_events))

@@ -223,7 +223,7 @@ ERA5-Land data.
 .venv/bin/python scripts/IME.py --no-plots
 ```
 
-During a successful run:
+The analysis:
 
 1. The program finds 15 public PRISMA/EnMAP GeoTIFFs.
 2. Missing ERA5-Land ZIP files are downloaded.
@@ -231,17 +231,7 @@ During a successful run:
 4. Public GHGSat metrics are read from `data/data_ghgsat_public.csv`.
 5. Results are written under `outputs/`.
 
-Expected summary:
-
-```text
-Found 15 public GeoTIFF files
-Paired IME events used: 14
-Paired Q events used: 14
-```
-
-There must be no `ERROR on file` messages. Some `Skip download` messages can
-appear during the first run when multiple plume files use the same ERA5 cache.
-Later runs reuse all available cache files.
+After the command finishes, check the generated files described in Step 9.
 
 ## 8. Generate figures
 
@@ -289,9 +279,14 @@ It contains:
 file, wind_speed_m_s, effective_wind_speed_m_s, IME_kg, L_m, Q_kg_h
 ```
 
-The `outputs/` directory also contains the complete Excel tables and the IME
-and flux comparison figures. Outputs and ERA5 cache files are excluded from
-Git.
+The complete results table is:
+
+```text
+outputs/Flux_results_all_sensors_IME_sqrtA_multisensor.xlsx
+```
+
+The `outputs/` directory also contains the comparison Excel table and figures.
+Outputs and ERA5 cache files are excluded from Git.
 
 ## 10. Troubleshooting
 
@@ -303,11 +298,6 @@ contains the personal token without quotes.
 ### CDS licence error or HTTP 403
 
 Log in to CDS and accept the ERA5-Land dataset terms.
-
-### `Skip download` appears
-
-This is normal when a non-empty ERA5 ZIP already exists in
-`data/YYYYMMDD/ERA5/`.
 
 ## 11. Data and method
 

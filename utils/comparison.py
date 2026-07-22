@@ -19,7 +19,6 @@ def paired_table(
 ) -> pd.DataFrame:
     missing = [column for column in required_cols if column not in table.columns]
     if missing:
-        print(f"\nMissing paired columns; skipping paired view: {missing}")
         return table.iloc[0:0].copy()
     return table.dropna(subset=required_cols, how="any")
 

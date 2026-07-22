@@ -203,16 +203,4 @@ def create_comparison_plots(
     configure_publication_style()
     ime_stats = plot_ime_comparison(wide_ime, output_dir, show=show)
     flux_stats = plot_flux_comparison(wide_q, output_dir, show=show)
-
-    for label, stats in (("IME", ime_stats), ("Q kg/h", flux_stats)):
-        if stats is None:
-            continue
-        print(f"\nRegression parameters {label}:")
-        print(f"R2 value: {stats['r2']:.2f}")
-        print(f"intercept = {stats['intercept']}")
-        print(f"slope = {stats['slope']}")
-        print(f"r = {stats['r']}")
-        print("Regression line formula:")
-        print(stats["equation"])
-
     return {"ime": ime_stats, "flux": flux_stats}
