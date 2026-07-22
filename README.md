@@ -293,48 +293,7 @@ The `outputs/` directory also contains the complete Excel tables and the IME
 and flux comparison figures. Outputs and ERA5 cache files are excluded from
 Git.
 
-## 10. Update an existing clone
-
-From the repository root:
-
-```bash
-git pull --ff-only
-git lfs pull
-```
-
-Update the Python libraries after `requirements.txt` changes:
-
-Windows PowerShell:
-
-```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
-```
-
-macOS Terminal:
-
-```bash
-.venv/bin/python -m pip install -r requirements.txt
-```
-
-## 11. Troubleshooting
-
-### `Repository not found` or HTTP 404
-
-Accept the GitHub collaborator invitation and sign in with the invited account.
-
-### GeoTIFFs are small text files
-
-Git LFS is missing or has not downloaded the data:
-
-```bash
-git lfs install
-git lfs pull
-```
-
-### `python` is not recognized on Windows
-
-Close and reopen PowerShell after installing Python. Confirm that Python 3.12
-was added to PATH. Conda is not required.
+## 10. Troubleshooting
 
 ### CDS authentication error or HTTP 401
 
@@ -350,11 +309,7 @@ Log in to CDS and accept the ERA5-Land dataset terms.
 This is normal when a non-empty ERA5 ZIP already exists in
 `data/YYYYMMDD/ERA5/`.
 
-### A `1 x 1` ERA5 subset cannot produce a TIFF
-
-This is expected. The point wind value is still used for the calculations.
-
-## 12. Data and method
+## 11. Data and method
 
 ```text
 data/YYYYMMDD/                 PRISMA and EnMAP plume GeoTIFFs
