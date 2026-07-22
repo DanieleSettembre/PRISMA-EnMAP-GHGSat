@@ -91,7 +91,18 @@ def emission_rate_from_plume_tif(
     plot_mask: bool = True,
 ) -> dict:
     with rasterio.open(tif_path) as src:
-        plume = src.read(1).astype(np.float64) * 8
+        sat_upper = "" if sat_name is None else str(sat_name).upper()
+        if sat_upper in {"PRS", "PRISMA"}:
+            if src.count < 4:
+                raise ValueError("PRISMA raster does not contain the required band 4.")
+            band_index = 4
+        elif sat_upper == "ENMAP":
+            band_index = 4 if src.count >= 4 else 1
+        else:
+            band_index = 1
+
+        plume = src.read(band_index).astype(np.float64)
+
         if nodata_to_nan and src.nodata is not None:
             plume[plume == src.nodata] = np.nan
 

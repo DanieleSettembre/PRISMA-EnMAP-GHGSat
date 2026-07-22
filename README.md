@@ -182,31 +182,7 @@ chmod 600 ~/.cdsapirc
 
 Do not create `.cdsapirc` inside the repository.
 
-## 6. Run the automated tests
-
-These tests validate the formulas, metadata parsing, ERA5 hourly matching, and
-wind-direction convention. They do not access the internet.
-
-### Windows PowerShell
-
-```powershell
-.\.venv\Scripts\python.exe -m unittest discover -s tests -v
-```
-
-### macOS Terminal
-
-```bash
-.venv/bin/python -m unittest discover -s tests -v
-```
-
-The expected final result is:
-
-```text
-Ran 5 tests
-OK
-```
-
-## 7. Run the complete analysis
+## 6. Run the complete analysis
 
 The first complete run tests the CDS credentials and downloads missing
 ERA5-Land data.
@@ -214,7 +190,7 @@ ERA5-Land data.
 ### Windows PowerShell
 
 ```powershell
-.\.venv\Scripts\python.exe scripts\IME.py --no-plots
+.\.venv\Scripts\python.exe scripts\Flux_comparison.py --no-plots
 ```
 
 ### macOS Terminal
@@ -233,14 +209,14 @@ The analysis:
 
 After the command finishes, check the generated files described in Step 9.
 
-## 8. Generate figures
+## 7. Generate figures
 
 Create figures without opening interactive windows:
 
 Windows PowerShell:
 
 ```powershell
-.\.venv\Scripts\python.exe scripts\IME.py
+.\.venv\Scripts\python.exe scripts\Flux_comparison.py
 ```
 
 macOS Terminal:
@@ -254,7 +230,7 @@ Create figures and display them during the run:
 Windows PowerShell:
 
 ```powershell
-.\.venv\Scripts\python.exe scripts\IME.py --show-plots
+.\.venv\Scripts\python.exe scripts\Flux_comparison.py --show-plots
 ```
 
 macOS Terminal:
@@ -264,6 +240,27 @@ macOS Terminal:
 ```
 
 Use `--help` to list all command-line options.
+
+## 8. Compare plume centerlines
+
+All plume folders are processed automatically using only the PRISMA raster and
+its centerline. Profile direction and sampling density are adjusted
+automatically.
+
+Windows PowerShell:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\plume_centerline_analysis.py
+```
+
+macOS Terminal:
+
+```bash
+.venv/bin/python scripts/plume_centerline_analysis.py
+```
+
+Figures are saved under `outputs/centerlines/`. Use `--help` to list the
+optional controls for a single comparison.
 
 ## 9. Check the outputs
 
@@ -309,6 +306,7 @@ Log in to CDS and accept the ERA5-Land dataset terms.
 
 ```text
 data/YYYYMMDD/                 PRISMA and EnMAP plume GeoTIFFs
+data/YYYYMMDD/Plume*/plume_centerline_PRS.*  PRISMA centerlines
 data/data_ghgsat_public.csv    Public GHGSat metrics (read-only)
 outputs/                       Generated tables and figures
 ```
