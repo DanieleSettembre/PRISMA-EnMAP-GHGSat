@@ -8,17 +8,18 @@ from utils.emissions import emission_rate_from_plume_tif
 from utils.ghgsat_public import append_ghgsat_public_results
 from utils.metadata import (
     event_key,
-    plume_directory_from_tif,
     sat_group_from_sat_name,
     sat_name_from_tif,
 )
 from utils.outputs import write_analysis_outputs
 from utils.plotting import create_comparison_plots
 from utils.wind import (
+    acquisition_interval_utc,
     acquisition_midpoint_utc,
     nearest_acquisition_path,
     nearest_era5_datetime_utc,
-    windspeed,
+    raster_bbox_union_latlon,
+    windspeed_from_time_and_area,
 )
 
 
@@ -49,17 +50,15 @@ def process_plume_tif(
     percentile_filter: float,
     plot_mask: bool,
     wind_by_event_hour: dict,
-    prisma_reference_paths: list[str],
+    wind_reference_by_tif: dict[str, str],
+    wind_area_by_interval: dict,
 ) -> dict:
     sensor = sat_name_from_tif(tif_path)
 
     try:
         midpoint_utc = acquisition_midpoint_utc(tif_path)
-        wind_reference_path = (
-            nearest_acquisition_path(tif_path, prisma_reference_paths)
-            if sensor == "PRS"
-            else tif_path
-        )
+        wind_reference_path = wind_reference_by_tif.get(tif_path, tif_path)
+        wind_interval = acquisition_interval_utc(wind_reference_path)
         wind_midpoint_utc = acquisition_midpoint_utc(wind_reference_path)
         wind_key = (
             event_key(tif_path),
@@ -69,8 +68,11 @@ def process_plume_tif(
         if wind_key in wind_by_event_hour:
             wind_speed = wind_by_event_hour[wind_key]
         else:
-            wind_reference_dir = plume_directory_from_tif(wind_reference_path)
-            wind_speed, _ = windspeed(wind_reference_path, wind_reference_dir)
+            wind_speed, _ = windspeed_from_time_and_area(
+                wind_reference_path,
+                tif_path,
+                area_nwse=wind_area_by_interval.get(wind_interval),
+            )
             wind_by_event_hour[wind_key] = wind_speed
         metrics = emission_rate_from_plume_tif(
             tif_path=tif_path,
@@ -124,6 +126,23 @@ def run_analysis(
     prisma_reference_paths = [
         path for path in tif_paths if sat_name_from_tif(path) == "PRS"
     ]
+    wind_reference_by_tif = {}
+    area_paths_by_interval = {}
+    for tif_path in tif_paths:
+        sensor = sat_name_from_tif(tif_path)
+        wind_reference_path = (
+            nearest_acquisition_path(tif_path, prisma_reference_paths)
+            if sensor == "PRS"
+            else tif_path
+        )
+        wind_reference_by_tif[tif_path] = wind_reference_path
+        wind_interval = acquisition_interval_utc(wind_reference_path)
+        area_paths_by_interval.setdefault(wind_interval, []).append(tif_path)
+
+    wind_area_by_interval = {
+        interval: raster_bbox_union_latlon(paths, buffer_deg=0.0)
+        for interval, paths in area_paths_by_interval.items()
+    }
     results = [
         process_plume_tif(
             tif_path,
@@ -131,7 +150,8 @@ def run_analysis(
             percentile_filter,
             plot_mask,
             wind_by_event_hour,
-            prisma_reference_paths,
+            wind_reference_by_tif,
+            wind_area_by_interval,
         )
         for tif_path in tif_paths
     ]

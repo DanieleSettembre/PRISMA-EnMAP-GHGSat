@@ -10,6 +10,8 @@ import xarray as xr
 from rasterio.transform import from_origin
 from rasterio.warp import transform_bounds
 
+from utils.metadata import sat_name_from_tif
+
 
 LOCAL_UTC_OFFSET_HOURS = 0
 BBOX_BUFFER_DEG = 0.0
@@ -61,33 +63,48 @@ def open_era5_dataset(nc_path: str) -> xr.Dataset:
             )
 
 
-def download_era5_land_cached(request: dict, out_zip_path: str) -> str:
-    if os.path.exists(out_zip_path) and os.path.getsize(out_zip_path) > 0:
+def download_era5_land_cached(
+    request: dict,
+    out_zip_path: str,
+    force: bool = False,
+) -> str:
+    cached_file_exists = (
+        os.path.exists(out_zip_path) and os.path.getsize(out_zip_path) > 0
+    )
+    if not force and cached_file_exists:
         return out_zip_path
 
     import cdsapi
 
+    temporary_path = f"{out_zip_path}.download"
     client = cdsapi.Client()
-    client.retrieve("reanalysis-era5-land", request).download(out_zip_path)
+    try:
+        client.retrieve("reanalysis-era5-land", request).download(temporary_path)
+        os.replace(temporary_path, out_zip_path)
+    finally:
+        if os.path.exists(temporary_path):
+            os.remove(temporary_path)
     return out_zip_path
-
-
-def find_first_geotiff(folder: str) -> str:
-    for root, _, files in os.walk(folder):
-        for file_name in sorted(files):
-            if file_name.lower().endswith((".tif", ".tiff")):
-                return os.path.join(root, file_name)
-    raise FileNotFoundError(f"No GeoTIFF found in: {folder}")
 
 
 def plume_point_from_raster(
     plume_raster_path: str,
-    method: str = "max",
+    method: str = "centroid_mask",
 ) -> tuple[float, float]:
     """Return a representative plume point as latitude and longitude."""
     with rasterio.open(plume_raster_path) as src:
-        array = src.read(1)
-        valid_mask = np.isfinite(array)
+        sensor = sat_name_from_tif(plume_raster_path)
+        if sensor == "PRS":
+            if src.count < 4:
+                raise ValueError("PRISMA raster does not contain the required band 4.")
+            band_index = 4
+        elif sensor == "ENMAP":
+            band_index = 4 if src.count >= 4 else 1
+        else:
+            band_index = 1
+
+        array = src.read(band_index)
+        valid_mask = (src.read_masks(band_index) > 0) & np.isfinite(array)
         if src.nodata is not None:
             valid_mask &= array != src.nodata
 
@@ -193,6 +210,38 @@ def era5_wind_at_point(
             "speed": speed,
             "direction_from_deg": direction_from,
         }
+    finally:
+        dataset.close()
+
+
+def era5_subset_covers_point(
+    nc_path: str,
+    target_lat: float,
+    target_lon: float,
+) -> bool:
+    dataset = open_era5_dataset(nc_path)
+    try:
+        latitudes = np.asarray(dataset["latitude"].values, dtype=float)
+        longitudes = np.asarray(dataset["longitude"].values, dtype=float)
+        lon_query = float(target_lon)
+        if longitudes.max() > 180 and lon_query < 0:
+            lon_query = (lon_query + 360) % 360
+
+        def coordinate_is_covered(values: np.ndarray, query: float) -> bool:
+            unique_values = np.unique(values)
+            if unique_values.size > 1:
+                tolerance = float(np.median(np.diff(unique_values))) / 2.0
+            else:
+                tolerance = 0.05
+            return bool(
+                unique_values.min() - tolerance <= query
+                <= unique_values.max() + tolerance
+            )
+
+        return coordinate_is_covered(
+            latitudes,
+            float(target_lat),
+        ) and coordinate_is_covered(longitudes, lon_query)
     finally:
         dataset.close()
 
@@ -309,6 +358,27 @@ def raster_bbox_latlon(
     return north, west, south, east
 
 
+def raster_bbox_union_latlon(
+    raster_paths: list[str],
+    buffer_deg: float = 0.0,
+) -> tuple[float, float, float, float]:
+    if not raster_paths:
+        raise ValueError("At least one raster is required for the ERA5 area.")
+
+    bounds = [raster_bbox_latlon(path) for path in raster_paths]
+    north = max(bound[0] for bound in bounds) + buffer_deg
+    west = min(bound[1] for bound in bounds) - buffer_deg
+    south = min(bound[2] for bound in bounds) - buffer_deg
+    east = max(bound[3] for bound in bounds) + buffer_deg
+
+    approximate_area = abs((east - west) * (north - south))
+    if approximate_area > MAX_AREA_DEG2:
+        raise ValueError(
+            f"Requested area is too large ({approximate_area:.2f} deg2)."
+        )
+    return north, west, south, east
+
+
 def build_cds_request(
     acquisition_time_utc: datetime,
     area_nwse: tuple[float, float, float, float],
@@ -358,11 +428,20 @@ def compute_speed_direction_tiff(
             west = (west + 360) % 360
             east = (east + 360) % 360
 
-        lat_descending = dataset["latitude"][0] > dataset["latitude"][-1]
-        lon_ascending = dataset["longitude"][0] < dataset["longitude"][-1]
-        lat_slice = slice(north, south) if lat_descending else slice(south, north)
-        lon_slice = slice(west, east) if lon_ascending else slice(east, west)
-        subset = dataset.sel(latitude=lat_slice, longitude=lon_slice)
+        latitude = dataset["latitude"]
+        longitude = dataset["longitude"]
+        selected_latitudes = latitude.where(
+            (latitude >= south) & (latitude <= north),
+            drop=True,
+        )
+        selected_longitudes = longitude.where(
+            (longitude >= west) & (longitude <= east),
+            drop=True,
+        )
+        subset = dataset.sel(
+            latitude=selected_latitudes,
+            longitude=selected_longitudes,
+        )
         u = subset["u10"]
         v = subset["v10"]
 
@@ -413,8 +492,8 @@ def compute_speed_direction_tiff(
         x_resolution = float(abs(longitudes[1] - longitudes[0]))
         y_resolution = float(abs(latitudes[1] - latitudes[0]))
         transform = from_origin(
-            west=float(min(longitudes)),
-            north=float(max(latitudes)),
+            west=float(min(longitudes)) - x_resolution / 2.0,
+            north=float(max(latitudes)) + y_resolution / 2.0,
             xsize=x_resolution,
             ysize=y_resolution,
         )
@@ -428,11 +507,20 @@ def compute_speed_direction_tiff(
             "transform": transform,
             "compress": "deflate",
         }
-        with rasterio.open(out_tif_path, "w", **profile) as destination:
-            destination.write(speed, 1)
-            destination.set_band_description(1, "wind_speed_10m_m_s")
-            destination.write(direction, 2)
-            destination.set_band_description(2, "wind_direction_from_north_deg")
+        temporary_path = f"{out_tif_path}.tmp.tif"
+        try:
+            with rasterio.open(temporary_path, "w", **profile) as destination:
+                destination.write(speed, 1)
+                destination.set_band_description(1, "wind_speed_10m_m_s")
+                destination.write(direction, 2)
+                destination.set_band_description(
+                    2,
+                    "wind_direction_from_north_deg",
+                )
+            os.replace(temporary_path, out_tif_path)
+        finally:
+            if os.path.exists(temporary_path):
+                os.remove(temporary_path)
         return True
     finally:
         dataset.close()
@@ -448,11 +536,14 @@ def era5_output_dir_for_raster(raster_path: str) -> str:
 
 def windspeed_from_time_and_area(
     time_source_path: str,
-    area_raster_path: str,
-    plume_dir: str,
+    plume_raster_path: str,
+    area_nwse: tuple[float, float, float, float] | None = None,
 ) -> tuple[float, str]:
-    area = raster_bbox_latlon(area_raster_path, buffer_deg=BBOX_BUFFER_DEG)
-    output_dir = era5_output_dir_for_raster(area_raster_path)
+    area = area_nwse or raster_bbox_latlon(
+        plume_raster_path,
+        buffer_deg=BBOX_BUFFER_DEG,
+    )
+    output_dir = era5_output_dir_for_raster(plume_raster_path)
     os.makedirs(output_dir, exist_ok=True)
 
     start_utc, stop_utc = acquisition_interval_utc(time_source_path)
@@ -468,8 +559,18 @@ def windspeed_from_time_and_area(
     download_era5_land_cached(request, out_zip)
 
     nc_path = find_netcdf_in_zip(out_zip, output_dir)
-    plume_raster = find_first_geotiff(plume_dir)
-    plume_lat, plume_lon = plume_point_from_raster(plume_raster, method="max")
+    plume_lat, plume_lon = plume_point_from_raster(
+        plume_raster_path,
+        method="centroid_mask",
+    )
+    if not era5_subset_covers_point(nc_path, plume_lat, plume_lon):
+        download_era5_land_cached(request, out_zip, force=True)
+        nc_path = find_netcdf_in_zip(out_zip, output_dir)
+        if not era5_subset_covers_point(nc_path, plume_lat, plume_lon):
+            raise ValueError(
+                "Downloaded ERA5 subset does not cover the plume point."
+            )
+
     wind_point = era5_wind_at_point(
         nc_path,
         plume_lat,
@@ -483,11 +584,11 @@ def windspeed_from_time_and_area(
             out_tif,
             target_time_utc=midpoint_utc,
         )
-    except Exception:
+    except PermissionError:
         pass
 
     return wind_point["speed"], midpoint_utc.strftime("%Y/%m/%d %H:%M:%S")
 
 
-def windspeed(raster_path: str, plume_dir: str) -> tuple[float, str]:
-    return windspeed_from_time_and_area(raster_path, raster_path, plume_dir)
+def windspeed(raster_path: str, plume_dir: str | None = None) -> tuple[float, str]:
+    return windspeed_from_time_and_area(raster_path, raster_path)

@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 from utils.emissions import effective_wind_speed_by_sensor
-from utils.metadata import event_key, plume_directory_from_tif
+from utils.metadata import event_key
 from utils.wind import (
     acquisition_midpoint_utc,
     nearest_era5_datetime_utc,
@@ -71,11 +71,9 @@ def fill_ghgsat_public_wind(
         midpoint_utc = acquisition_midpoint_utc(time_source_path)
         datetime_str = midpoint_utc.strftime("%Y/%m/%d %H:%M:%S")
         if wind_speed_override is None:
-            plume_dir = plume_directory_from_tif(reference_tif)
             u10_mps, datetime_str = windspeed_from_time_and_area(
                 time_source_path,
                 reference_tif,
-                plume_dir,
             )
         else:
             u10_mps = float(wind_speed_override)
