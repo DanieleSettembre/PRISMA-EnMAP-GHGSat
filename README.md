@@ -88,7 +88,7 @@ git lfs pull
 git lfs ls-files
 ```
 
-Complete the browser login when requested. `git lfs ls-files` must list 15
+Complete the browser login when requested. `git lfs ls-files` must list the
 GeoTIFFs. If the TIFFs contain only small text pointers, run `git lfs pull`
 again.
 
@@ -262,7 +262,24 @@ macOS Terminal:
 Figures are saved under `outputs/centerlines/`. Use `--help` to list the
 optional controls for a single comparison.
 
-## 9. Check the outputs
+## 9. Coregister PRISMA images
+
+This script coregisters the three-band PRISMA rasters to the EnMAP reference
+using SSIM.
+
+Windows PowerShell:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\Coregistration_PRS.py
+```
+
+macOS Terminal:
+
+```bash
+.venv/bin/python scripts/Coregistration_PRS.py
+```
+
+## 10. Check the outputs
 
 The compact CSV is:
 
@@ -291,7 +308,7 @@ outputs/Flux_comparison_PRS-GHGSat.csv
 The `outputs/` directory also contains the comparison figures.
 Outputs and ERA5 cache files are excluded from Git.
 
-## 10. Troubleshooting
+## 11. Troubleshooting
 
 ### CDS authentication error or HTTP 401
 
@@ -302,12 +319,13 @@ contains the personal token without quotes.
 
 Log in to CDS and accept the ERA5-Land dataset terms.
 
-## 11. Data and method
+## 12. Data and method
 
 ```text
 data/YYYYMMDD/                 PRISMA and EnMAP plume GeoTIFFs
 data/YYYYMMDD/Plume*/plume_centerline_PRS.*  PRISMA centerlines
 data/data_ghgsat_public.csv    Public GHGSat metrics (read-only)
+coregistration_data/           Three-band PRISMA and EnMAP RGB inputs
 outputs/                       Generated tables and figures
 ```
 

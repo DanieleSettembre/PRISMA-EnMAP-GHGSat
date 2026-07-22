@@ -10,6 +10,7 @@ __pycache__/
 env/
 outputs/*
 !outputs/.gitkeep
+coregistration_results/
 data/**/ERA5/
 *.xlsx
 *.png
