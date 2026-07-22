@@ -220,7 +220,7 @@ ERA5-Land data.
 ### macOS Terminal
 
 ```bash
-.venv/bin/python scripts/IME.py --no-plots
+.venv/bin/python scripts/Flux_comparison.py --no-plots
 ```
 
 The analysis:
@@ -246,7 +246,7 @@ Windows PowerShell:
 macOS Terminal:
 
 ```bash
-.venv/bin/python scripts/IME.py
+.venv/bin/python scripts/Flux_comparison.py
 ```
 
 Create figures and display them during the run:
@@ -260,7 +260,7 @@ Windows PowerShell:
 macOS Terminal:
 
 ```bash
-.venv/bin/python scripts/IME.py --show-plots
+.venv/bin/python scripts/Flux_comparison.py --show-plots
 ```
 
 Use `--help` to list all command-line options.
