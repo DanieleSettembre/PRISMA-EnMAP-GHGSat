@@ -7,7 +7,7 @@ from sklearn.metrics import r2_score
 from utils.comparison import format_regression_equation, rma_regression
 
 
-def configure_publication_style() -> None:
+def configure_plot_style() -> None:
     plt.rcParams.update(
         {
             "font.family": "Arial",
@@ -166,7 +166,7 @@ def plot_ime_comparison(wide_ime, output_dir: str, show: bool = True) -> dict | 
         y_values=wide_ime[("IME (kg)", "PRS")],
         x_label="GHGSat IME (kg)",
         y_label="PRISMA IME (kg)",
-        output_stem="IME_GHGSat_vs_PRISMA_publication_multisensor",
+        output_stem="IME_GHGSat_vs_PRISMA",
         output_dir=output_dir,
         axis_step=10,
         x_name="GHGSat IME",
@@ -184,7 +184,7 @@ def plot_flux_comparison(wide_q, output_dir: str, show: bool = True) -> dict | N
         y_values=wide_q[("Q (kg/h)", "PRS")],
         x_label="GHGSat emission rate (kg h$^{-1}$)",
         y_label="PRISMA emission rate (kg h$^{-1}$)",
-        output_stem="Flux_GHGSat_vs_PRISMA_publication_multisensor",
+        output_stem="Flux_GHGSat_vs_PRISMA",
         output_dir=output_dir,
         axis_step=100,
         x_name="GHGSat Q",
@@ -200,7 +200,7 @@ def create_comparison_plots(
     output_dir: str,
     show: bool = True,
 ) -> dict:
-    configure_publication_style()
+    configure_plot_style()
     ime_stats = plot_ime_comparison(wide_ime, output_dir, show=show)
     flux_stats = plot_flux_comparison(wide_q, output_dir, show=show)
     return {"ime": ime_stats, "flux": flux_stats}

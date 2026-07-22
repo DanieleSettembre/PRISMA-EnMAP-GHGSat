@@ -98,7 +98,7 @@ def emission_rate_from_plume_tif(
         px_area_src, _, _ = pixel_metrics_from_dataset(src)
         px_area_m2 = px_area_src if px_area_def is None else float(px_area_def)
 
-    mask, effective_threshold_ppm_m = build_plume_mask_percentile(
+    mask, _ = build_plume_mask_percentile(
         plume=plume,
         base_threshold_ppm_m=plume_threshold_ppm_m,
         lower_percentile=percentile_filter,

@@ -48,7 +48,6 @@ def result_from_ghgsat_public_row(
         "U10 (m/s)": np.nan,
         "Ueff (m/s)": np.nan,
         "Ueff method": None,
-        "Mask threshold (ppm m)": np.nan,
         "N plume pixels": np.nan,
         "A plume mask (m2)": np.nan,
         "L sqrt(A) (m)": float(row["L_m"]),

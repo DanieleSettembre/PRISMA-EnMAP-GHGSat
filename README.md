@@ -270,7 +270,7 @@ Use `--help` to list all command-line options.
 The compact CSV is:
 
 ```text
-outputs/Flux_comparison_GHGSat_PRISMA_EnMAP_multisensor.csv
+outputs/Flux_comparison_GHGSat_PRISMA_EnMAP.csv
 ```
 
 It contains:
@@ -282,10 +282,16 @@ file, wind_speed_m_s, effective_wind_speed_m_s, IME_kg, L_m, Q_kg_h
 The complete results table is:
 
 ```text
-outputs/Flux_results_all_sensors_IME_sqrtA_multisensor.xlsx
+outputs/Flux_results_all_sensors.csv
 ```
 
-The `outputs/` directory also contains the comparison Excel table and figures.
+The PRISMA-GHGSat comparison table is:
+
+```text
+outputs/Flux_comparison_PRS-GHGSat.csv
+```
+
+The `outputs/` directory also contains the comparison figures.
 Outputs and ERA5 cache files are excluded from Git.
 
 ## 10. Troubleshooting

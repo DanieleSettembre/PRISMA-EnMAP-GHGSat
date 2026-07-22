@@ -4,10 +4,24 @@ import pandas as pd
 
 
 def display_file_name(file_path: str) -> str:
-    return os.path.basename(str(file_path))
+    return os.path.basename(str(file_path)).replace("_400_2488", "")
 
 
-def write_multisensor_flux_csv(
+def prepare_output_table(table: pd.DataFrame) -> pd.DataFrame:
+    threshold_columns = [
+        column for column in table.columns if "threshold" in str(column).lower()
+    ]
+    output = table.drop(columns=threshold_columns).copy()
+    for column in output.select_dtypes(include=["object", "string"]).columns:
+        output[column] = output[column].map(
+            lambda value: value.replace("_400_2488", "")
+            if isinstance(value, str)
+            else value
+        )
+    return output
+
+
+def write_flux_csv(
     results: pd.DataFrame,
     output_csv: str,
 ) -> None:
@@ -47,19 +61,24 @@ def write_analysis_outputs(
     output_dir: str,
 ) -> None:
     os.makedirs(output_dir, exist_ok=True)
-    results.to_excel(
-        os.path.join(output_dir, "Flux_results_all_sensors_IME_sqrtA_multisensor.xlsx"),
+    prepare_output_table(results).to_csv(
+        os.path.join(output_dir, "Flux_results_all_sensors.csv"),
         index=False,
+        encoding="utf-8-sig",
     )
-    write_multisensor_flux_csv(
+    write_flux_csv(
         results,
         os.path.join(
             output_dir,
-            "Flux_comparison_GHGSat_PRISMA_EnMAP_multisensor.csv",
+            "Flux_comparison_GHGSat_PRISMA_EnMAP.csv",
         ),
     )
     comparison_path = os.path.join(
         output_dir,
-        "Flux_comparison_by_plume_sensor_IME_sqrtA_percentile_mod_multisensor.xlsx",
+        "Flux_comparison_PRS-GHGSat.csv",
     )
-    comparison.to_excel(comparison_path, index=False)
+    prepare_output_table(comparison).to_csv(
+        comparison_path,
+        index=False,
+        encoding="utf-8-sig",
+    )
