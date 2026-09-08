@@ -2,7 +2,6 @@ import os
 
 import matplotlib.pyplot as plt
 import numpy as np
-from sklearn.metrics import r2_score
 
 from utils.comparison import format_regression_equation, rma_regression
 
@@ -64,8 +63,8 @@ def _plot_comparison(
 
     maximum = _axis_maximum(x_array, y_array, axis_step)
     slope, intercept, correlation = rma_regression(x_array, y_array)
-    r_squared = float(r2_score(x_array, y_array))
     x_line = np.linspace(0, maximum, 300)
+    r_squared = float(correlation**2)
 
     fig, axis = plt.subplots(figsize=(7.2, 6.8), dpi=300)
     axis.scatter(

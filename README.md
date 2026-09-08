@@ -337,3 +337,13 @@ References: [Guanter et al., 2021](https://www.sciencedirect.com/science/article
 Filename timestamps are interpreted as UTC. ERA5-Land is selected at the
 nearest hour. Wind direction is measured clockwise from North and indicates
 where the wind comes from.
+
+## Citation
+
+If you use this dataset or code, please cite:
+
+Settembre, D., De Santis, D., Schiavon, G., & Del Frate, F. (2026). Methane
+detection and emission estimation from space: Benchmarking PRISMA and EnMAP
+with the GHGSat constellation. *International Journal of Applied Earth
+Observation and Geoinformation, 153*, 105557.
+[https://doi.org/10.1016/j.jag.2026.105557](https://doi.org/10.1016/j.jag.2026.105557)
